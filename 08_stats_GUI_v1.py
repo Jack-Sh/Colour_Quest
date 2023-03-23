@@ -25,8 +25,8 @@ class Play:
 
         self.play_box = Toplevel()
 
-        user_scores = [20, 14, 14, 13, 14, 11, 20, 10, 20, 11]
-        computer_scores = [12 , 4, 6, 20, 20, 14, 10, 14, 16, 12] 
+        self.user_scores = [20, 14, 14, 13, 14, 11, 20, 10, 20, 11]
+        self.computer_scores = [12 , 4, 6, 20, 20, 14, 10, 14, 16, 12] 
 
         self.quest_frame = Frame(self.play_box, padx=10, pady=10)
         self.quest_frame.grid()
@@ -51,13 +51,13 @@ class Play:
                                               bg=control_buttons[item][0],
                                               text=control_buttons[item][1],
                                               width=11, font=("Arial", "12", "bold"),
-                                              command=lambda i=item: self.to_do(control_buttons[i][2]))
+                                              command=lambda i=item:self.to_do(control_buttons[i][2]))
             self.make_control_button.grid(row=0, column=item, padx=5, pady=5)
 
             # Add buttons to control list
             self.control_button_ref.append(self.make_control_button)
 
-        self.to_help_btn = self.control_button_ref[0]
+        self.to_stats_btn = self.control_button_ref[0]
 
 
     # Detects which 'control' button was pressed and
@@ -65,9 +65,9 @@ class Play:
     # with calls to classes in this section!
     def to_do(self, action):
         if action == "get help":
-            DisplayHelp(self)
-        elif action == "get stats":
             pass
+        elif action == "get stats":
+            DisplayStats(self, self.user_scores, self.computer_scores)
         else:
             self.close_play()
 
@@ -76,44 +76,91 @@ class Play:
         root.destroy()
 
 
-class DisplayHelp:
+class DisplayStats:
 
 
-    def __init__(self, partner):
+    def __init__(self, partner, user_scores, computer_scores):
+
         # setup dialogue box and background colour
-        background = "#ffe6cc"
-        self.help_box = Toplevel()
+        self.stats_box = Toplevel()
+
+        stats_bg_colour = "#DAE8FC"
 
         # disable help button
-        partner.to_help_btn.config(state=DISABLED)
+        partner.to_stats_btn.config(state=DISABLED)
 
         # if users press cross at top close help
-        self.help_box.protocol('WM_DELETE_WINDOW', partial(self.close_help, partner))
+        self.stats_box.protocol('WM_DELETE_WINDOW', partial(self.close_stats, partner))
 
-        self.help_frame = Frame(self.help_box, width=300, height=200, bg=background)
+        self.stats_frame = Frame(self.stats_box, width=300, height=200, bg=stats_bg_colour)
 
-        self.help_frame.grid()
+        self.stats_frame.grid()
 
-        self.help_heading_label = Label(self.help_frame, bg=background, text="Help / Hints", font=("Arial", "14", "bold"))
+        self.help_heading_label = Label(self.stats_frame, text="Statistics", font=("Arial", "14", "bold"), bg=stats_bg_colour)
 
         self.help_heading_label.grid(row=0)
 
-        help_text = "Your goal in this game is to beat the computer and you have an advantage - you get to choose your colour first. The points associated with the colours are based on the colour's hex code. The higher the value of the colour, the greater your score. To see your statistics, click on the 'Statistics' button. \n\nWin the game by scoring more than the computer overall. Don't be discouraged if you don't win every round, it's your overall score that counts. Good luck! Choose carefully."
+        stats_text = "Here are your game statistics"
+        self.help_text_label = Label(self.stats_frame, text=stats_text, justify="left", bg=stats_bg_colour)
 
-        self.help_text_label = Label(self.help_frame, bg=background, text=help_text, wraplength=350, justify="left")
-        
         self.help_text_label.grid(row=1, padx=10)
 
-        self.dismiss_button = Button(self.help_frame, font=("Arial", "12", "bold"), text="Dismiss", bg="#CC6600", fg="#FFFFFF", command=partial(self.close_help, partner))
+        self.data_frame = Frame(self.stats_frame, bg=stats_bg_colour, borderwidth=1, relief="solid")
 
-        self.dismiss_button.grid(row=2, padx=10, pady=10)
+        self.data_frame.grid(row=2, padx=10, pady=10)
+
+        # get statistics for user and computer
+        self.user_stats = self.get_stats(user_scores, "User")
+        self.comp_stats = self.get_stats(computer_scores, "Computer")
+
+        # background formatting for heading, odd and even rows
+        head_back = "#FFFFFF"
+        odd_rows = "#C9D6E8"
+        even_rows = stats_bg_colour
+
+        row_names = ["", "Total", "Best Score", "Worst Score", "Average"]
+        row_formats = [head_back, odd_rows, even_rows, odd_rows, even_rows]
+
+        # data for labels (one label / sub list)
+        all_labels = []
+
+        count = 0
+        for item in range(0, len(self.user_stats)):
+            all_labels.append([row_names[item], row_formats[count]])
+            all_labels.append([self.user_stats[item], row_formats[count]])
+            all_labels.append([self.comp_stats[item], row_formats[count]])
+            count += 1
+
+        # create labels based on list above
+        for item in range(0, len(all_labels)):
+            self.data_label = Label(self.data_frame, text=all_labels[item][0], bg=all_labels[item][1], width="10", height="2", padx=5)
+
+            self.data_label.grid(row=item // 3, column=item % 3, padx=0, pady=0)
+
+        # dismiss button
+        self.dismiss_button = Button(self.stats_frame, font=("Arial", "12", "bold"), text="Dismiss", bg="#CC6600", fg="#FFFFFF", command=partial(self.close_stats, partner))
+
+        self.dismiss_button.grid(row=3, padx=10, pady=10)
+
+    
+    #calculate total, best, worst and average score from list
+    @staticmethod
+    def get_stats(score_list, entity):
+        total_score = sum(score_list)
+        best_score = max(score_list)
+        worst_score = min(score_list)
+        average = total_score / len(score_list)
+
+        return [entity, total_score, best_score, worst_score, average]
+        
 
     # closes help dialogue (used by button and x at top of dialogue)
-    def close_help(self, partner):
+    def close_stats(self, partner):
+
         # Put help button back to normal...
 
-        partner.to_help_btn.config(state=NORMAL)
-        self.help_box.destroy()
+        partner.to_stats_btn.config(state=NORMAL)
+        self.stats_box.destroy()
 
 
 # main routine
